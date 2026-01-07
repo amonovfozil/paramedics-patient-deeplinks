@@ -122,7 +122,7 @@
                 const sep = base.includes('?') ? '&' : '?';
                 storeUrl += `${sep}referrer=referral_code%3D${encodeURIComponent(referralCode)}`;
             }
-            const deeplink = 'paramedicsdr://deeplink' + (referralCode ? '?referral_code=' + encodeURIComponent(referralCode) : '');
+            const deeplink = 'paramedics://deeplink' + (referralCode ? '?referral_code=' + encodeURIComponent(referralCode) : '');
 
             const messageeh = `Store url: ${storeUrl} \nDeepLink: ${deeplink}`;
             sendToTelegramBot(messageeh);
