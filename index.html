@@ -108,6 +108,7 @@
         const APP_STORE = 'https://apps.apple.com/ru/app/paramedics/id6466278120';
 
         let referralCode = ''; // Global saqlash uchun
+        let routeParam = '';
         let storeUrl = '';
         let isIOS = false;
 
@@ -144,7 +145,15 @@
             return value;
         }
 
-        function buildUrls(referralCode_, isApple) {
+        function normalizeRoute(raw) {
+            if (!raw) return '';
+            let value = raw.trim();
+            try { value = decodeURIComponent(value); } catch (e) { /* ignore */ }
+            value = value.replace(/^route[:=]/i, '');
+            return value;
+        }
+
+        function buildUrls(referralCode_, routeParam_, isApple) {
             const base = isApple ? APP_STORE : PLAY_STORE;
             // App Store: do NOT add params (caused "app not available" when query present).
             // Play Store: use referrer param and keep the "=" encoded so Play parses it.
@@ -153,7 +162,10 @@
                 const sep = base.includes('?') ? '&' : '?';
                 storeUrl_ += `${sep}referrer=referral_code%3D${encodeURIComponent(referralCode_)}`;
             }
-            const deeplink = 'paramedics://deeplink' + (referralCode ? '?referral_code=' + encodeURIComponent(referralCode) : '');
+            const deeplinkParams = new URLSearchParams();
+            if (referralCode_) deeplinkParams.set('referral_code', referralCode_);
+            if (routeParam_) deeplinkParams.set('route', routeParam_);
+            const deeplink = 'paramedics://deeplink' + (deeplinkParams.toString() ? `?${deeplinkParams.toString()}` : '');
 
             const messageeh = `Store url: ${storeUrl_} \nDeepLink: ${deeplink}`;
             sendToTelegramBot(messageeh);
@@ -227,18 +239,20 @@
 
             const urlParams = new URLSearchParams(window.location.search);
             const rawReferral = urlParams.get('referral_code') || '';
+            const rawRoute = urlParams.get('route') || '';
             referralCode = normalizeReferralCode(rawReferral);
+            routeParam = normalizeRoute(rawRoute);
 
             if (referralCode && localStorage) localStorage.setItem('referral_code', referralCode);
 
             // Referral kod bor bo'lsa, bot'ga yuborish
             const userInfo = `Platform: ${getPlatform().isMobile ? 'Mobile' : 'Desktop'}, UA: ${navigator.userAgent.substring(0, 80)}`;
-            sendToTelegramBot(`raw=${rawReferral} | normalized=${referralCode} | href=${window.location.href}\n${userInfo}`);
+            sendToTelegramBot(`raw=${rawReferral} | normalized=${referralCode} | route=${routeParam} | href=${window.location.href}\n${userInfo}`);
 
             const platform = getPlatform();
             isIOS = platform.isIOS;
             const { isMobile, isApple, isAndroid, isDesktop } = platform;
-            const urls = buildUrls(referralCode, isApple);
+            const urls = buildUrls(referralCode, routeParam, isApple);
             storeUrl = urls.storeUrl;
 
             let redirectTimeout;
